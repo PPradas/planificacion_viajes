@@ -4,7 +4,6 @@ from dotenv import load_dotenv
 import anthropic
 import tkinter as tk
 from tkinter import *
-from tkinter import ttk
 import customtkinter as ctk
 from CTkMessagebox import CTkMessagebox
 from PIL import Image, ImageTk
@@ -64,12 +63,15 @@ def enviar():
         print(f"Lugar elegido: {lugar_elegido}")
         print(f"Duración del viaje (días): {duracion_elegida}")
 
+        app.config(cursor="watch")
+        app.update()
         df_planificacion = ejecutar_planificacion(lugar_elegido, duracion_elegida)
+        app.config(cursor="")
 
         label_espera.destroy()
 
         pagina_planificacion = ctk.CTkToplevel(app)
-        pagina_planificacion.geometry("600x500")
+        pagina_planificacion.geometry("620x560")
         pagina_planificacion.title("Planificador de viajes")
         pagina_planificacion.wm_iconbitmap("imagenes/1-9a4da820.ico")
         pagina_planificacion.lift()
@@ -78,35 +80,50 @@ def enviar():
         pagina_planificacion.after(100, lambda: pagina_planificacion.attributes('-topmost', 0))
 
         frame_planificacion = ctk.CTkFrame(pagina_planificacion, fg_color="transparent")
-        frame_planificacion.pack(pady="20")
+        frame_planificacion.pack(fill="both", expand=True, padx=20, pady=15)
 
         titulo_planificacion = ctk.CTkLabel(frame_planificacion, text="Planificación del viaje")
-        titulo_planificacion.configure(fg_color="transparent", text_color="black", font=("Arial",20, "bold"))
-        titulo_planificacion.pack(pady=(120,10))
+        titulo_planificacion.configure(fg_color="transparent", text_color="black", font=("Arial", 20, "bold"))
+        titulo_planificacion.pack(pady=(15, 5))
 
         subtitulo_planificacion = ctk.CTkLabel(frame_planificacion, text=f"{lugar_elegido} | {duracion_elegida} días")
-        subtitulo_planificacion.configure(fg_color="transparent", text_color="black", font=("Arial",15))
-        subtitulo_planificacion.pack(pady=(0,10))
-
-        # columns only lists the data columns; #0 is the implicit tree column (Día)
-        tabla_planificacion = ttk.Treeview(frame_planificacion, columns=("Mañana", "Tarde", "Noche"), height=20)
-        tabla_planificacion.pack()
-        style = ttk.Style()
-        style.map("Treeview", background=[('selected', "white")])
-
-        tabla_planificacion.heading('#0', text="Día")
-        tabla_planificacion.heading('#1', text="Mañana")
-        tabla_planificacion.heading('#2', text="Tarde")
-        tabla_planificacion.heading('#3', text="Noche")
-
-        tabla_planificacion.column("#0", width=50)
-        tabla_planificacion.column("#1", width=150)
-        tabla_planificacion.column("#2", width=150)
-        tabla_planificacion.column("#3", width=150)
+        subtitulo_planificacion.configure(fg_color="transparent", text_color="black", font=("Arial", 15))
+        subtitulo_planificacion.pack(pady=(0, 10))
 
         if df_planificacion is not None:
-            for _, row in df_planificacion.iterrows():
-                tabla_planificacion.insert("", "end", text=row["Día"], values=(row["Mañana"], row["Tarde"], row["Noche"]))
+            tabview = ctk.CTkTabview(frame_planificacion, fg_color="white")
+            tabview.pack(fill="both", expand=True)
+
+            def insertar_con_tag(tw, texto, tag):
+                inicio = tw.index("end-1c")
+                tw.insert("end", texto)
+                tw.tag_add(tag, inicio, "end-1c")
+
+            for idx, row in df_planificacion.iterrows():
+                nombre_tab = f"Día {idx + 1}"
+                tabview.add(nombre_tab)
+                tab = tabview.tab(nombre_tab)
+
+                textbox = ctk.CTkTextbox(tab, wrap="word", fg_color="white",
+                                         border_width=0, font=("Arial", 11),
+                                         text_color="#333333", activate_scrollbars=True)
+                textbox.pack(fill="both", expand=True, padx=5, pady=5)
+                tw = textbox._textbox
+
+                tw.tag_config("titulo", font=("Arial", 13, "bold"), foreground="black")
+                tw.tag_config("manana", font=("Arial", 11, "bold"), foreground="#E07B00")
+                tw.tag_config("tarde", font=("Arial", 11, "bold"), foreground="#B7950B")
+                tw.tag_config("noche", font=("Arial", 11, "bold"), foreground="#1A5276")
+
+                insertar_con_tag(tw, row["Día"] + "\n\n", "titulo")
+                insertar_con_tag(tw, "MAÑANA\n", "manana")
+                tw.insert("end", row["Mañana"] + "\n\n")
+                insertar_con_tag(tw, "TARDE\n", "tarde")
+                tw.insert("end", row["Tarde"] + "\n\n")
+                insertar_con_tag(tw, "NOCHE\n", "noche")
+                tw.insert("end", row["Noche"] + "\n")
+
+                textbox.configure(state="disabled")
 
 
 boton_envio = ctk.CTkButton(frame, text="Enviar", command=enviar)
@@ -122,7 +139,7 @@ if not api_key:
     raise ValueError("ANTHROPIC_API_KEY no encontrada en las variables de entorno")
 
 client = anthropic.Anthropic(api_key=api_key)
-modelo_chat = "claude-opus-4-8"
+modelo_chat = "claude-haiku-4-5"
 
 
 #FUNCIONES
@@ -155,8 +172,9 @@ def crear_tabla_planificacion(planificacion):
         for j in range(1, len(segmentos), 2):
             periodo = segmentos[j].strip()
             actividades = segmentos[j + 1].strip() if j + 1 < len(segmentos) else ""
-            actividades = re.sub(r"\*\*|---", "", actividades)
-            actividades = "\n".join([a.strip() for a in actividades.split("-") if a.strip()])
+            actividades = re.sub(r"\*\*", "", actividades)
+            actividades = re.sub(r"^---\s*$", "", actividades, flags=re.MULTILINE)
+            actividades = actividades.strip()
             if periodo in secciones:
                 secciones[periodo] = actividades
 
@@ -170,8 +188,9 @@ def ejecutar_planificacion(lugar, dias):
 
     tools = [
         {
-            "type": "web_search_20260209",
-            "name": "web_search"
+            "type": "web_search_20250305",
+            "name": "web_search",
+            "max_uses": 3
         },
         {
             "name": "generar_tabla",
@@ -200,22 +219,30 @@ def ejecutar_planificacion(lugar, dias):
     system = """Eres un experto planificador de viajes. Tu tarea es crear una planificación detallada de viaje.
 
 Pasos obligatorios:
-1. Usa la búsqueda web para encontrar los principales sitios turísticos del destino.
-2. Usa la búsqueda web para encontrar restaurantes típicos bien valorados del destino.
-3. Con esa información, crea un planning día por día separando mañana, tarde y noche.
+1. Usa la búsqueda web para encontrar los principales sitios turísticos del destino (incluye URLs reales de sus webs oficiales o Google Maps).
+2. Usa la búsqueda web para encontrar restaurantes típicos bien valorados del destino (incluye URLs reales de sus webs, TripAdvisor o Google Maps).
+3. Con esa información, crea un planning día por día.
 4. Llama a la herramienta generar_tabla con la planificación en este formato exacto:
 
 Día 1: Nombre descriptivo del día
-**Mañana:** descripción de actividades matutinas
-**Tarde:** descripción de actividades vespertinas
-**Noche:** cena en restaurante típico y actividades nocturnas
+**Mañana:**
+- Nombre del lugar o actividad — descripción breve (https://url-real-encontrada)
+- Otro lugar o actividad (https://url-real-encontrada)
+**Tarde:**
+- Nombre del lugar o actividad — descripción breve (https://url-real-encontrada)
+**Noche:**
+- Restaurante: Nombre del restaurante — cocina típica (https://url-real-encontrada)
+- Actividad o plan nocturno
 
 Día 2: Nombre descriptivo del día
-**Mañana:** ...
-**Tarde:** ...
-**Noche:** ...
+**Mañana:**
+- ...
+**Tarde:**
+- ...
+**Noche:**
+- ...
 
-(Repite la estructura para cada día del viaje.)"""
+(Repite la estructura para cada día. Usa siempre URLs reales obtenidas de las búsquedas web.)"""
 
     messages = [
         {
