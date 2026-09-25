@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light">
+  <title>{{ lugar }} · {{ dias }} días — Planificador de Viajes</title>
+  <link rel="icon" href="/favicon.ico">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #F1F5F9;
+      color: #111827;
+    }
+
+    /* ── Header ── */
+    .header {
+      background: linear-gradient(140deg, #0f2027 0%, #203a43 55%, #2c5364 100%);
+      color: #fff;
+      padding: 28px 24px 48px;
+      text-align: center;
+      position: relative;
+    }
+
+    .back-link {
+      position: absolute;
+      top: 24px;
+      left: 20px;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      color: rgba(255,255,255,0.6);
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 500;
+      transition: color 0.15s;
+    }
+    .back-link:hover { color: #fff; }
+
+    .header-icon { font-size: 44px; line-height: 1; margin-bottom: 10px; }
+
+    .header h1 {
+      font-size: 30px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .header-meta {
+      margin-top: 6px;
+      font-size: 14px;
+      color: rgba(255,255,255,0.55);
+    }
+
+    .badges {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 14px;
+    }
+
+    .badge {
+      background: rgba(255,255,255,0.12);
+      border: 1px solid rgba(255,255,255,0.18);
+      border-radius: 20px;
+      padding: 4px 12px;
+      font-size: 12px;
+      font-weight: 500;
+      color: rgba(255,255,255,0.8);
+    }
+
+    /* ── Content ── */
+    .content {
+      max-width: 740px;
+      margin: -20px auto 0;
+      padding: 0 20px 64px;
+    }
+
+    /* ── Day card ── */
+    .day-card {
+      background: #fff;
+      border-radius: 18px;
+      overflow: hidden;
+      box-shadow: 0 2px 16px rgba(0,0,0,0.07);
+      margin-bottom: 28px;
+    }
+
+    .day-img {
+      width: 100%;
+      height: 190px;
+      object-fit: cover;
+      display: block;
+    }
+
+    .day-body {
+      padding: 22px 26px 26px;
+    }
+
+    .day-eyebrow {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: #1CAC78;
+      margin-bottom: 4px;
+    }
+
+    .day-title {
+      font-size: 19px;
+      font-weight: 700;
+      color: #111827;
+      margin-bottom: 22px;
+    }
+
+    /* ── Timeline ── */
+    .timeline { display: flex; flex-direction: column; }
+
+    .tl-item {
+      display: flex;
+      gap: 16px;
+    }
+
+    .tl-track {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 38px;
+      flex-shrink: 0;
+    }
+
+    .tl-dot {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 17px;
+      flex-shrink: 0;
+    }
+
+    .dot-manana { background: #FEF3C7; }
+    .dot-tarde  { background: #D1FAE5; }
+    .dot-noche  { background: #EDE9FE; }
+
+    .tl-line {
+      width: 2px;
+      flex: 1;
+      min-height: 16px;
+      background: #E5E7EB;
+      margin: 5px 0;
+    }
+
+    .tl-content {
+      flex: 1;
+      padding-bottom: 22px;
+    }
+
+    .tl-item:last-child .tl-content { padding-bottom: 0; }
+
+    .period-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.09em;
+      padding-top: 9px;
+      margin-bottom: 10px;
+    }
+
+    .label-manana { color: #D97706; }
+    .label-tarde  { color: #059669; }
+    .label-noche  { color: #7C3AED; }
+
+    /* ── Restaurantes section ── */
+    .restaurantes-section {
+      border-top: 1px solid #F3F4F6;
+      padding: 18px 26px 22px;
+      background: #FAFAFA;
+    }
+
+    .restaurantes-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .restaurantes-icon {
+      font-size: 16px;
+    }
+
+    .restaurantes-title {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.09em;
+      color: #EA580C;
+    }
+
+    .restaurantes-list {
+      list-style: none;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .restaurantes-list li {
+      font-size: 14px;
+      color: #374151;
+      line-height: 1.5;
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+    }
+
+    .restaurantes-list li::before {
+      content: "🍴";
+      font-size: 13px;
+      flex-shrink: 0;
+    }
+
+    .restaurantes-section .activity-list li::before {
+      content: "🍴";
+      font-size: 13px;
+    }
+
+    .restaurantes-section .activity-list li {
+      border-bottom-color: #EFEFEF;
+      padding: 6px 0;
+    }
+
+    .activity-list {
+      list-style: none;
+      padding: 0;
+    }
+
+    .activity-list li {
+      font-size: 14px;
+      line-height: 1.65;
+      color: #374151;
+      padding: 7px 0;
+      border-bottom: 1px solid #F9FAFB;
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+    }
+
+    .activity-list li::before {
+      content: "•";
+      color: #D1D5DB;
+      font-size: 16px;
+      flex-shrink: 0;
+      line-height: 1.4;
+    }
+
+    .activity-list li:last-child { border-bottom: none; }
+
+    .activity-link {
+      color: #1CAC78;
+      text-decoration: none;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 1px 6px;
+      border: 1px solid #BBF7D0;
+      border-radius: 4px;
+      white-space: nowrap;
+      transition: background 0.12s;
+    }
+
+    .activity-link:hover { background: #F0FDF4; }
+
+    .empty-note {
+      font-size: 13px;
+      color: #9CA3AF;
+      font-style: italic;
+      padding-top: 4px;
+    }
+
+    /* ── Empty state ── */
+    .empty-state {
+      text-align: center;
+      padding: 80px 20px;
+      color: #6B7280;
+    }
+
+    .empty-state p { font-size: 17px; margin-bottom: 12px; }
+
+    .empty-state a {
+      color: #1CAC78;
+      text-decoration: none;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <a href="/" class="back-link">← Nuevo viaje</a>
+    <div class="header-icon">🗺️</div>
+    <h1>{{ lugar }}</h1>
+    <div class="header-meta">Planificación personalizada con IA</div>
+    <div class="badges">
+      <span class="badge">📅 {{ dias }} {% if dias == '1' %}día{% else %}días{% endif %}</span>
+      <span class="badge">📍 {{ dias_data | length }} jornadas</span>
+    </div>
+  </div>
+
+  <div class="content">
+
+    {% if not dias_data %}
+    <div class="empty-state">
+      <p>No se pudo generar la planificación.</p>
+      <a href="/">Inténtalo de nuevo</a>
+    </div>
+
+    {% else %}
+    {% for dia in dias_data %}
+    <div class="day-card">
+
+      {% if dia.imagen %}
+      <img
+        class="day-img"
+        src="{{ dia.imagen }}"
+        alt="{{ dia.titulo }}"
+        loading="lazy"
+        onerror="this.style.display='none'"
+      >
+      {% endif %}
+
+      <div class="day-body">
+        <div class="day-eyebrow">Día {{ dia.numero }}</div>
+        <div class="day-title">
+          {{ dia.titulo.split(' - ', 1)[1] if ' - ' in dia.titulo else dia.titulo }}
+        </div>
+
+        <div class="timeline">
+
+          <!-- MAÑANA -->
+          <div class="tl-item">
+            <div class="tl-track">
+              <div class="tl-dot dot-manana">🌅</div>
+              <div class="tl-line"></div>
+            </div>
+            <div class="tl-content">
+              <div class="period-label label-manana">Mañana</div>
+              {% if dia.manana %}{{ dia.manana | safe }}{% else %}<span class="empty-note">Sin actividades</span>{% endif %}
+            </div>
+          </div>
+
+          <!-- TARDE -->
+          <div class="tl-item">
+            <div class="tl-track">
+              <div class="tl-dot dot-tarde">☀️</div>
+              {% if dia.noche %}<div class="tl-line"></div>{% endif %}
+            </div>
+            <div class="tl-content">
+              <div class="period-label label-tarde">Tarde</div>
+              {% if dia.tarde %}{{ dia.tarde | safe }}{% else %}<span class="empty-note">Sin actividades</span>{% endif %}
+            </div>
+          </div>
+
+          <!-- NOCHE (opcional) -->
+          {% if dia.noche %}
+          <div class="tl-item">
+            <div class="tl-track">
+              <div class="tl-dot dot-noche">🌙</div>
+            </div>
+            <div class="tl-content">
+              <div class="period-label label-noche">Noche</div>
+              {{ dia.noche | safe }}
+            </div>
+          </div>
+          {% endif %}
+
+        </div>
+      </div>
+
+      {% if dia.restaurantes %}
+      <div class="restaurantes-section">
+        <div class="restaurantes-header">
+          <span class="restaurantes-icon">🍽️</span>
+          <span class="restaurantes-title">Restaurantes recomendados</span>
+        </div>
+        {{ dia.restaurantes | safe }}
+      </div>
+      {% endif %}
+
+    </div>
+    {% endfor %}
+    {% endif %}
+
+  </div>
+</body>
+</html>
